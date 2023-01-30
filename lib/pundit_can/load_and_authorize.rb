@@ -6,10 +6,8 @@ module PunditCan
     include Pundit::Authorization
 
     included do
-      if !self.class.instance_methods.include?(:devise_controller?) || !devise_controller?
-        after_action :verify_authorized
-        after_action :verify_policy_scoped, except: [:new, :create]
-      end
+      after_action :verify_authorized, unless: -> { respond_to?(:devise_controller?) && devise_controller? }
+      after_action :verify_policy_scoped, except: [:new, :create], unless: -> { respond_to?(:devise_controller?) && devise_controller? }
     end
 
     class_methods do
