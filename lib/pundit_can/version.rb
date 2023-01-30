@@ -1,0 +1,3 @@
+module PunditCan
+  VERSION = "0.1.0"
+end
