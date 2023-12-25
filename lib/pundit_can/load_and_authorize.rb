@@ -7,7 +7,14 @@ module PunditCan
 
     included do
       after_action :verify_authorized, unless: -> { respond_to?(:devise_controller?) && devise_controller? }
-      after_action :verify_policy_scoped, except: [:new, :create], unless: -> { respond_to?(:devise_controller?) && devise_controller? }
+
+      except_actions = []
+      except_actions << :new if respond_to?(:new)
+      except_actions << :create if respond_to?(:create)
+
+      after_action :verify_policy_scoped, except: except_actions, unless: lambda {
+                                                                            respond_to?(:devise_controller?) && devise_controller?
+                                                                          }
     end
 
     class_methods do
@@ -22,9 +29,9 @@ module PunditCan
       # @param [*Symbol] actions
       #
       def skip_authorized_check *actions
-        if actions.any?
-          skip_after_action :verify_authorized, only: actions
-        end
+        return unless actions.any?
+
+        skip_after_action :verify_authorized, only: actions
       end
 
       # skip_scoped_check
@@ -38,9 +45,9 @@ module PunditCan
       # @param [*Symbol] actions
       #
       def skip_scoped_check *actions
-        if actions.any?
-          skip_after_action :verify_policy_scoped, only: actions
-        end
+        return unless actions.any?
+
+        skip_after_action :verify_policy_scoped, only: actions
       end
 
       # load_resource
@@ -86,16 +93,18 @@ module PunditCan
       param_key = get_param_key(options, instance_name, model_class)
 
       loaded = if options[:parent]
-        load_parent_instance_var(model_class, param_key, options.extract!(:policy_class), options.extract!(:policy_scope_class))
+        load_parent_instance_var(model_class, param_key, options.extract!(:policy_class),
+          options.extract!(:policy_scope_class))
       else
-        load_instance_var(model_class, param_key, options.extract!(:policy_class), options.extract!(:policy_scope_class))
+        load_instance_var(model_class, param_key, options.extract!(:policy_class),
+          options.extract!(:policy_scope_class))
       end
 
       instance_name = instance_name.pluralize unless loaded.is_a?(model_class)
       instance_variable_set("@#{instance_name}", loaded)
     end
 
-    def get_param_key options, instance_name, model_class
+    def get_param_key(options, instance_name, model_class)
       if options[:parent]
         options.fetch(:param_key, :"#{instance_name || model_class&.name&.underscore}_id")
       else
@@ -105,11 +114,11 @@ module PunditCan
 
     # if a model_name option is given use that otherwise nil
     # and is parent
-    def model_instance_name options
+    def model_instance_name(options)
       options[:model_class].name.underscore if options[:model_class].present? && options[:parent]
     end
 
-    def load_instance_var model_class, param_key, policy_kwopts, policy_scope_kwopts
+    def load_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts)
       case params[:action]
       when "index"
         load_scope(model_class, policy_kwopts, policy_scope_kwopts)
@@ -128,17 +137,17 @@ module PunditCan
       end
     end
 
-    def load_parent_instance_var model_class, param_key, policy_kwopts, policy_scope_kwopts
-      if params[param_key]
-        load_model(model_class, param_key, policy_kwopts, policy_scope_kwopts, :show?)
-      end
+    def load_parent_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts)
+      return unless params[param_key]
+
+      load_model(model_class, param_key, policy_kwopts, policy_scope_kwopts, :show?)
     end
 
-    def load_model model_class, param_key, policy_kwopts, policy_scope_kwopts, query = nil
+    def load_model(model_class, param_key, policy_kwopts, policy_scope_kwopts, query = nil)
       authorize(policy_scope(model_class, **policy_scope_kwopts).find(params[param_key]), query, **policy_kwopts)
     end
 
-    def load_scope model_class, policy_kwopts, policy_scope_kwopts
+    def load_scope(model_class, policy_kwopts, policy_scope_kwopts)
       authorize(policy_scope(model_class, **policy_scope_kwopts), **policy_kwopts)
     end
   end
