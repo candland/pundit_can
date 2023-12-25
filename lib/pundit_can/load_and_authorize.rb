@@ -8,13 +8,11 @@ module PunditCan
     included do
       after_action :verify_authorized, unless: -> { respond_to?(:devise_controller?) && devise_controller? }
 
-      except_actions = []
-      except_actions << :new if respond_to?(:new)
-      except_actions << :create if respond_to?(:create)
-
-      after_action :verify_policy_scoped, except: except_actions, unless: lambda {
-                                                                            respond_to?(:devise_controller?) && devise_controller?
-                                                                          }
+      after_action :verify_policy_scoped,
+        unless: lambda {
+          %i[new create].include?(action_name.to_sym) ||
+            (respond_to?(:devise_controller?) && devise_controller?)
+        }
     end
 
     class_methods do

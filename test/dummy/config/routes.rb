@@ -5,6 +5,7 @@ Rails.application.routes.draw do
 
   resources :special, controller: :mis_matched
   resources :missing, controller: :missing
+  resources :missing_scope, controller: :missing_scope
   resources :skips
   resources :devise, controller: :devise
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

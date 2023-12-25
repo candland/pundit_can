@@ -30,12 +30,9 @@ module Pundit
     end
 
     test "new user" do
-      assert_raises Pundit::NotAuthorizedError do
-        get new_user_url
-        assigned_user = assigns(:user)
-
-        assert_nil assigned_user
-      end
+      get new_user_url
+      assigned_user = assigns(:user)
+      refute_nil assigned_user
     end
 
     test "update user" do

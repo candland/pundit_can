@@ -13,8 +13,12 @@ class UserPolicy < ApplicationPolicy
     true
   end
 
+  def create?
+    true
+  end
+
   def permitted_attributes
-    [:email, :password]
+    %i[email password]
   end
 
   class Scope < ApplicationPolicy::Scope
