@@ -1,6 +1,6 @@
 class PostsController < ApplicationController
   load_resource model_class: User, parent: true
-  load_resource
+  load_resource through: :user
 
   def index
   end

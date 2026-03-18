@@ -68,6 +68,10 @@ module PunditCan
       #
       # @param [Boolean] parent Optional. Changes the loading for parent classes. Default +false+
       #
+      # @param [Symbol] through Optional. When the resource is loaded through a parent relationship,
+      # the scope passed to the policy will be the parent's association. For example,
+      # +through: :user+ will pass +@user.posts+ as the scope to the PostPolicy.
+      #
       # @param [Constant] policy_class Optional. The policy class to use. Defaults from controller name.
       #
       # @param [Constant] policy_scope_class Optional. The policy scope class to use. Defaults from controller name.
@@ -90,12 +94,19 @@ module PunditCan
       instance_name = (options[:instance_name] || model_instance_name(options) || resource_class_name.underscore).to_s
       param_key = get_param_key(options, instance_name, model_class)
 
+      policy_kwopts = options.extract!(:policy_class)
+      policy_scope_kwopts = options.extract!(:policy_scope_class)
+
       loaded = if options[:parent]
-        load_parent_instance_var(model_class, param_key, options.extract!(:policy_class),
-          options.extract!(:policy_scope_class))
+        load_parent_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts)
       else
-        load_instance_var(model_class, param_key, options.extract!(:policy_class),
-          options.extract!(:policy_scope_class))
+        # When :through is specified, pass the parent's association as the scope
+        scope_class = if options[:through] && (parent = instance_variable_get("@#{options[:through]}"))
+          parent.public_send(model_class.name.underscore.pluralize)
+        else
+          model_class
+        end
+        load_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts, scope_class)
       end
 
       instance_name = instance_name.pluralize unless loaded.is_a?(model_class)
@@ -116,21 +127,21 @@ module PunditCan
       options[:model_class].name.underscore if options[:model_class].present? && options[:parent]
     end
 
-    def load_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts)
+    def load_instance_var(model_class, param_key, policy_kwopts, policy_scope_kwopts, scope_class = model_class)
       case params[:action]
       when "index"
-        load_scope(model_class, policy_kwopts, policy_scope_kwopts)
+        load_scope(scope_class, policy_kwopts, policy_scope_kwopts)
       when "new"
         authorize(model_class.new, **policy_kwopts)
       when "create"
         authorize(model_class.new(permitted_attributes(model_class)), **policy_kwopts)
       when "edit", "update", "show", "destroy"
-        load_model(model_class, param_key, policy_kwopts, policy_scope_kwopts)
+        load_model(scope_class, param_key, policy_kwopts, policy_scope_kwopts)
       else
         if params[param_key]
-          load_model(model_class, param_key, policy_kwopts, policy_scope_kwopts)
+          load_model(scope_class, param_key, policy_kwopts, policy_scope_kwopts)
         else
-          load_scope(model_class, policy_kwopts, policy_scope_kwopts)
+          load_scope(scope_class, policy_kwopts, policy_scope_kwopts)
         end
       end
     end

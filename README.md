@@ -19,25 +19,30 @@ This will load `@user` from `User` using the `UserPolicy` to authorize and scope
 
 ### Advanced usage
 
-There is support for loading multiple models. However, there isn't a `:through` option, like cancan,
-instead loading still goes through Pundit scopes.
-
 There are options to customize the loaded instance_name, model, and policy classes.
 
 #### Parent / nested
 
-This is a example of loading User and Posts.
+This is an example of loading User and Posts, where posts are scoped through the user.
 ```ruby
 class PostsController < ApplicationController
   load_resource model_class: User, parent: true
-  load_resource
+  load_resource through: :user
 
   ...
 end
 ```
 
+The `:through` option tells `load_resource` to pass the parent's association as the scope
+through the policy. For example, if `@user` was loaded by the first call, the second call
+will pass `@user.posts` to `PostPolicy::Scope` instead of `Post.all`. This allows the
+policy scope to work with the already-authorized parent.
+
 That will load `@user` from the `UserPolicy` into a `User` class, using `:user_id` to find the user.
-And it will lost `@post` or `@posts` using the `PostPolicy` with the `:id` param.
+And it will load `@post` or `@posts` using the `PostPolicy` with the `:id` param.
+
+If there is no parent instance variable set (e.g., a non-nested route), it will fall back
+to the default behavior of scoping with the model class.
 
 #### Customized loading
 

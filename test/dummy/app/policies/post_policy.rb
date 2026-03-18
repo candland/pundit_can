@@ -15,7 +15,8 @@ class PostPolicy < ApplicationPolicy
 
   class Scope < ApplicationPolicy::Scope
     def resolve
-      Post.where(user_id: user.id)
+      # scope is either the model class (Post) or the parent's association (@user.posts)
+      scope.all
     end
   end
 end
