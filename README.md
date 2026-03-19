@@ -44,6 +44,19 @@ And it will load `@post` or `@posts` using the `PostPolicy` with the `:id` param
 If there is no parent instance variable set (e.g., a non-nested route), it will fall back
 to the default behavior of scoping with the model class.
 
+When the association name doesn't match the model name, use the `:association` option:
+```ruby
+class ArticlesController < ApplicationController
+  load_resource model_class: User, parent: true
+  load_resource model_class: Article, through: :user, association: :articles
+  
+  # This passes @user.articles instead of @user.posts to the ArticlePolicy::Scope
+end
+```
+
+This is useful when you have associations like `has_many :published_posts, class_name: "Post"`
+or other cases where the association method name differs from the model class name.
+
 #### Customized loading
 
 You can customize the loading for cases when the model, controller, and policies don't match up name-wise.

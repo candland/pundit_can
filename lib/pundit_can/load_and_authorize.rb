@@ -72,6 +72,12 @@ module PunditCan
       # the scope passed to the policy will be the parent's association. For example,
       # +through: :user+ will pass +@user.posts+ as the scope to the PostPolicy.
       #
+      # @param [Symbol] association Optional. When used with +:through+, specifies the association
+      # method name to call on the parent. By default, the association name is derived from the
+      # model class name (e.g., +Post+ becomes +posts+). Use this option when the association name
+      # differs from the model name. For example, +through: :user, association: :articles+ will
+      # pass +@user.articles+ as the scope.
+      #
       # @param [Constant] policy_class Optional. The policy class to use. Defaults from controller name.
       #
       # @param [Constant] policy_scope_class Optional. The policy scope class to use. Defaults from controller name.
@@ -102,7 +108,8 @@ module PunditCan
       else
         # When :through is specified, pass the parent's association as the scope
         scope_class = if options[:through] && (parent = instance_variable_get("@#{options[:through]}"))
-          parent.public_send(model_class.name.underscore.pluralize)
+          assoc = options[:association] || model_class.name.underscore.pluralize
+          parent.public_send(assoc)
         else
           model_class
         end
